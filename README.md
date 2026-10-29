@@ -1,5 +1,7 @@
 # Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23758133.svg)](https://doi.org/10.5281/zenodo.23758133)
+
 Code and data pipeline for the paper:
 
 > L. Zheng and J. Pan, "Rethinking the Reported Accuracy of Smartphone-Based
