@@ -149,7 +149,7 @@ def fig_field_cdf(df: pd.DataFrame, pred_rand: pd.DataFrame):
 def fig_scatter(pred_rand: pd.DataFrame, pred_logo: pd.DataFrame):
     from matplotlib.lines import Line2D
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.1, 3.35))
+    fig, axes = plt.subplots(1, 2, figsize=(7.1, 2.75))
     lo, hi = 84.5, 107.5
 
     panels = [
@@ -172,7 +172,6 @@ def fig_scatter(pred_rand: pd.DataFrame, pred_logo: pd.DataFrame):
         ax.set_title(title, fontsize=9)
         ax.set_xlim(lo, hi)
         ax.set_ylim(lo, hi)
-        ax.set_aspect("equal")
         ax.set_xlabel("Measured E-field (dB$\\mu$V/m)")
 
     handles = [Line2D([], [], marker="s", ls="none", ms=6, mfc="white",
