@@ -96,7 +96,7 @@ def pooled_metrics(d: pd.DataFrame) -> dict:
 def fig_field_cdf(df: pd.DataFrame, pred_rand: pd.DataFrame):
     from matplotlib.lines import Line2D
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.1, 3.05))
+    fig, axes = plt.subplots(1, 2, figsize=(7.1, 2.85))
 
     # (a) 随机 80/20：训练 vs 测试
     ax = axes[0]
