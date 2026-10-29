@@ -1,0 +1,40 @@
+{
+  "title": "emf-inversion-audit: code and data pipeline for \"Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion for Crowdsourced EMF Monitoring\"",
+  "description": "<p>Code and data pipeline accompanying the paper <em>Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion for Crowdsourced EMF Monitoring</em>.</p><p>Starting from a public smartphone measurement campaign (Zeng et al., <em>Radio Science</em>, 2024), the repository reproduces a gradient-boosting electric-field inversion model and then varies three factors that are usually fixed by convention:</p><ul><li><strong>Evaluation protocol</strong> &mdash; random hold-out, spatio-temporal patch-based cross-validation with an embargo, and leave-one-(campaign, band)-out. Protocol choice moves the error estimate by 0.39 dB, more than twice the spread among six regressors.</li><li><strong>Band information</strong> &mdash; adding the reported EARFCN removes a band-dependent bias of up to 0.5 dB and lowers MAE by 15&ndash;31 % depending on how the label is defined.</li><li><strong>Device calibration</strong> &mdash; input-space recalibration of the same handset is absorbed by the tree ensemble; only cross-device offsets matter, and 100 labelled samples recover 65&ndash;75 % of the loss.</li></ul><p>The dataset is not redistributed here; it is available from figshare (DOI 10.6084/m9.figshare.25034537.v1).</p>",
+  "creators": [
+    {
+      "name": "Zheng, Lianzhong",
+      "affiliation": "China Academy of Information and Communications Technology, Beijing, China"
+    },
+    {
+      "name": "Pan, Juan",
+      "affiliation": "China Academy of Information and Communications Technology, Beijing, China"
+    }
+  ],
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "language": "eng",
+  "keywords": [
+    "electromagnetic field exposure",
+    "smartphone-based measurement",
+    "cross-validation",
+    "data leakage",
+    "gradient boosting",
+    "reproducibility"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "references",
+      "identifier": "10.6084/m9.figshare.25034537.v1",
+      "resource_type": "dataset",
+      "scheme": "doi"
+    },
+    {
+      "relation": "references",
+      "identifier": "10.1029/2023RS007890",
+      "resource_type": "publication-article",
+      "scheme": "doi"
+    }
+  ]
+}
