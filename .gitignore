@@ -1,0 +1,28 @@
+# --- data: not redistributed, download from figshare (see README) -------------
+ds01/
+ds01
+
+# --- generated results --------------------------------------------------------
+outputs/
+
+# --- python -------------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- editors / OS -------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- local working notes and third-party PDFs ---------------------------------
+.workbuddy/
+.workbuddy-ai/
+bat_log.txt
+*.pdf
+!paper/figures/*.pdf
