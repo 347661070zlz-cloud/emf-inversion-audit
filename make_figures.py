@@ -23,7 +23,7 @@ from matplotlib.ticker import MultipleLocator
 from src import config as C
 from cv_experiment import add_blocks, load_with_coords
 
-OUT = Path(__file__).resolve().parent / "figures"
+OUT = C.FIG_DIR                      # outputs/figures
 OUT.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------- 全局样式

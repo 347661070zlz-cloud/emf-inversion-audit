@@ -1,13 +1,14 @@
-"""论文新增图：场强 CDF / 预测-真实散点 / 分频段时序对比。
+"""Diagnostic figures for the manuscript.
 
-三张候选图：
-  A. fig5_field_cdf.pdf   训练集与测试集的场强 CDF（随机划分 vs 留一场次）
-  B. fig6_scatter.pdf     预测值 vs 真实值（随机划分 vs LOGO-CV）
-  C. fig7_series.pdf      分频段连续 200 个测试样本的时序对比
+  fig_field_cdf.pdf      CDF of the field strength: random split vs LOGO-CV groups
+  fig_pred_scatter.pdf   predicted vs measured field strength, random vs LOGO-CV
+  fig_residual_band.pdf  residual distribution per band, with and without EARFCN
+
+Requires outputs/tables/predictions_released.csv, produced by run_all.py.
 
 用法：
-    python make_paper_figs.py            # 全部
-    python make_paper_figs.py --skip-logo  # 复用已缓存的 LOGO 预测
+    python make_figures_diagnostics.py              # 全部
+    python make_figures_diagnostics.py --skip-logo  # 复用已缓存的 LOGO 预测
 """
 import argparse
 import time
@@ -31,10 +32,8 @@ from src import config as C
 from src import model
 from cv_experiment import load_with_coords, add_blocks
 
-OUT = C.OUT_DIR / "paper_figs"
+OUT = C.FIG_DIR                      # outputs/figures
 OUT.mkdir(parents=True, exist_ok=True)
-FIGP = C.ROOT / "paper" / "figures"
-FIGP.mkdir(parents=True, exist_ok=True)
 
 plt.rcParams.update({
     "figure.dpi": 130, "savefig.dpi": 300, "font.size": 9,
@@ -142,8 +141,7 @@ def fig_field_cdf(df: pd.DataFrame, pred_rand: pd.DataFrame):
                handlelength=1.3, columnspacing=1.6, handletextpad=0.5)
     fig.tight_layout()
     for ext in ("png", "pdf"):
-        fig.savefig(OUT / f"fig5_field_cdf.{ext}", bbox_inches="tight")
-    fig.savefig(FIGP / "fig_field_cdf.pdf", bbox_inches="tight")
+        fig.savefig(OUT / f"fig_field_cdf.{ext}", bbox_inches="tight")
     return fig
 
 
@@ -187,60 +185,10 @@ def fig_scatter(pred_rand: pd.DataFrame, pred_logo: pd.DataFrame):
     axes[0].set_ylabel("Predicted E-field (dB$\\mu$V/m)")
     fig.tight_layout()
     for ext in ("png", "pdf"):
-        fig.savefig(OUT / f"fig6_scatter.{ext}", bbox_inches="tight")
-    fig.savefig(FIGP / "fig_pred_scatter.pdf", bbox_inches="tight")
+        fig.savefig(OUT / f"fig_pred_scatter.{ext}", bbox_inches="tight")
     return fig
 
 
-# --------------------------------------------------------------- 图 C：时序
-def fig_series(pred_rand: pd.DataFrame, n: int = 200):
-    """两种取样口径各出一张：
-
-    - band   ：每个频段取测试集里时间上最早的 n 条（同频段连续，看能否跟住时间变化）
-    - testrank：sklearn 返回的 y_test[:n]（论文 Figure 9 口径，跨频段打乱）
-    """
-    te = pred_rand[pred_rand["split"] == "test"]
-
-    # ---- 口径一：分频段、按时间连续
-    fig, axes = plt.subplots(2, 2, figsize=(7.1, 4.4), sharex=True)
-    for ax, ef in zip(axes.ravel(), C.BANDS):
-        d = te[te["earfcn"] == ef].sort_values("order").head(n).reset_index(drop=True)
-        y, p = d["y_true"].to_numpy(), d["y_pred"].to_numpy()
-        ax.plot(d.index, y, color="#2f6db3", lw=1.3, label="Measured")
-        ax.plot(d.index, p, color="#d1495b", lw=1.1, ls="--", label="Predicted")
-        mae = np.abs(p - y).mean()
-        # 这一段内部 σ 很小时 R² 无意义，改报 σ(y)
-        ax.set_title(f"EARFCN {ef} ({C.BANDS[ef]})\n"
-                     f"MAE = {mae:.2f} dB,  $\\sigma(y)$ = {y.std():.2f} dB",
-                     fontsize=8)
-        ax.tick_params(labelsize=7.5)
-    axes[0, 0].legend(frameon=False, fontsize=7.5, loc="upper right")
-    for ax in axes[1]:
-        ax.set_xlabel("Sample index (consecutive in time)", fontsize=8)
-    for ax in axes[:, 0]:
-        ax.set_ylabel("E-field (dB$\\mu$V/m)", fontsize=8)
-    fig.tight_layout()
-    for ext in ("png", "pdf"):
-        fig.savefig(OUT / f"fig7_series_band.{ext}", bbox_inches="tight")
-
-    # ---- 口径二：y_test[:n]（跨频段打乱）
-    d = te.sort_values("test_rank").head(n).reset_index(drop=True)
-    y, p = d["y_true"].to_numpy(), d["y_pred"].to_numpy()
-    fig, ax = plt.subplots(figsize=(7.1, 2.7))
-    ax.plot(d.index, y, color="#2f6db3", lw=1.3, label="Measured")
-    ax.plot(d.index, p, color="#d1495b", lw=1.1, ls="--", label="Predicted")
-    ax.set_xlabel("Index in the shuffled test array ($y_{test}$[:200])", fontsize=8)
-    ax.set_ylabel("E-field (dB$\\mu$V/m)", fontsize=8)
-    ax.set_title(f"$y_{{test}}$[:200] — samples from all four bands, "
-                 f"MAE = {np.abs(p-y).mean():.2f} dB", fontsize=8.5)
-    ax.legend(frameon=False, fontsize=7.5, ncol=2, loc="upper right")
-    fig.tight_layout()
-    for ext in ("png", "pdf"):
-        fig.savefig(OUT / f"fig7_series_testrank.{ext}", bbox_inches="tight")
-    return fig
-
-
-# ------------------------------------------------- 图 D：带 EARFCN 的模型能否跟住时序
 def band_aware_predictions(df: pd.DataFrame, pred_rand: pd.DataFrame) -> pd.DataFrame:
     """在与 predictions_released 相同的随机划分上，训练带 earfcn 特征的模型。"""
     cache = C.TAB_DIR / "predictions_bandaware.csv"
@@ -275,52 +223,6 @@ def band_aware_predictions(df: pd.DataFrame, pred_rand: pd.DataFrame) -> pd.Data
     return d
 
 
-def fig_series_bandaware(pred_rand: pd.DataFrame, pred_bw: pd.DataFrame, n: int = 200):
-    from matplotlib.lines import Line2D
-
-    te = pred_rand[pred_rand["split"] == "test"].set_index("order")
-    bw = pred_bw.set_index("order")
-
-    fig, axes = plt.subplots(2, 2, figsize=(7.1, 4.5), sharex=True)
-    rows = []
-    for ax, ef in zip(axes.ravel(), C.BANDS):
-        orders = te[te["earfcn"] == ef].sort_values("order").index[:n]
-        y = te.loc[orders, "y_true"].to_numpy()
-        p0 = te.loc[orders, "y_pred"].to_numpy()          # 23 特征基线
-        p1 = bw.loc[orders, "y_pred"].to_numpy()          # + EARFCN
-        x = np.arange(len(orders))
-
-        ax.plot(x, y, color="#2f6db3", lw=1.4, label="Measured", zorder=4)
-        ax.plot(x, p0, color="#8a8a8a", lw=0.9, ls=":", label="Baseline (RSRP only)",
-                zorder=2)
-        ax.plot(x, p1, color="#d1495b", lw=1.2, ls="--", label="$+$ EARFCN", zorder=3)
-
-        mae0, mae1 = np.abs(p0 - y).mean(), np.abs(p1 - y).mean()
-        rows.append((ef, mae0, mae1, y.std()))
-        ax.set_title(f"EARFCN {ef} ({C.BANDS[ef]})   "
-                     f"MAE {mae0:.2f} $\\rightarrow$ {mae1:.2f} dB", fontsize=8)
-        ax.tick_params(labelsize=7.5)
-
-    for ax in axes[1]:
-        ax.set_xlabel("Sample index (consecutive in time)", fontsize=8)
-    for ax in axes[:, 0]:
-        ax.set_ylabel("E-field (dB$\\mu$V/m)", fontsize=8)
-
-    handles = [Line2D([], [], color="#2f6db3", lw=1.4, label="Measured"),
-               Line2D([], [], color="#8a8a8a", lw=0.9, ls=":", label="Baseline (RSRP only)"),
-               Line2D([], [], color="#d1495b", lw=1.2, ls="--", label="$+$ EARFCN")]
-    fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False,
-               fontsize=7.5, bbox_to_anchor=(0.5, -0.035), columnspacing=2.0)
-    fig.tight_layout()
-    for ext in ("png", "pdf"):
-        fig.savefig(OUT / f"fig8_series_bandaware.{ext}", bbox_inches="tight")
-
-    print("\n=== 时序片段上的逐频段 MAE ===")
-    for ef, m0, m1, sg in rows:
-        print(f"  EARFCN {ef:5d}: {m0:.2f} -> {m1:.2f} dB  (σ(y)={sg:.2f})")
-    return fig
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--skip-logo", action="store_true")
@@ -341,9 +243,7 @@ def main():
 
     fig_field_cdf(df, pred_rand)
     fig_scatter(pred_rand, pred_logo)
-    fig_series(pred_rand)
     pred_bw = band_aware_predictions(df, pred_rand)
-    fig_series_bandaware(pred_rand, pred_bw)
     fig_residual_box(pred_rand, pred_bw)
 
     # 数字汇总，供正文引用
@@ -418,8 +318,7 @@ def fig_residual_box(pred_rand: pd.DataFrame, pred_bw: pd.DataFrame):
               ncol=3, handletextpad=0.4, columnspacing=1.2)
     fig.tight_layout()
     for ext in ("png", "pdf"):
-        fig.savefig(OUT / f"fig9_residual_box.{ext}", bbox_inches="tight")
-    fig.savefig(FIGP / "fig_residual_band.pdf", bbox_inches="tight")
+        fig.savefig(OUT / f"fig_residual_band.{ext}", bbox_inches="tight")
     return fig
 
 

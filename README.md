@@ -4,15 +4,14 @@
 
 Code and data pipeline for the paper:
 
-> L. Zheng and J. Pan, "Rethinking the Reported Accuracy of Smartphone-Based
+> Lianzhong Zheng and Juan Pan, "Rethinking the Reported Accuracy of Smartphone-Based
 > Electric-Field Inversion for Crowdsourced EMF Monitoring," *IEEE Access*
 > (under review).
 
 Starting from a public smartphone measurement campaign, we reproduce a
 gradient-boosting electric-field inversion model and then vary three factors that
 are usually fixed by convention: the evaluation protocol, the feature set, and the
-device calibration. A detailed Chinese walk-through of the reproduction is in
-[`README.zh.md`](README.zh.md).
+device calibration.
 
 ## What the code shows
 
@@ -71,13 +70,13 @@ previous results.
 | Table IV — within-band R² | `python band_model_experiment.py` | same file, columns `b*_R2` |
 | Table V — model comparison | `python compare_models.py` | `outputs/compare/model_summary.csv` |
 | Table VI — inter-device offset | `python device_shift_experiment.py` | `outputs/protocol/device_shift.csv` |
-| Fig. 1 — study area and folds | `python paper/make_figures.py` | `paper/figures/fig3_study_area.pdf` |
-| Fig. 2 — test MAE by protocol | `python paper/make_figures.py` | `paper/figures/fig1_protocols.pdf` |
-| Fig. 3 — predicted vs. measured | `python make_paper_figs.py` | `paper/figures/fig_pred_scatter.pdf` |
-| Fig. 4 — field-strength CDF | `python make_paper_figs.py` | `paper/figures/fig_field_cdf.pdf` |
-| Fig. 5 — protocol × feature | `python paper/make_figures.py` | `paper/figures/fig2_protocol_feature.pdf` |
-| Fig. 6 — residual distribution per band | `python make_paper_figs.py` | `paper/figures/fig_residual_band.pdf` |
-| Fig. 7 — cost of an inter-device offset | `python paper/make_figures.py` | `paper/figures/fig4_device.pdf` |
+| Fig. 1 — study area and folds | `python make_figures.py` | `outputs/figures/fig3_study_area.pdf` |
+| Fig. 2 — test MAE by protocol | `python make_figures.py` | `outputs/figures/fig1_protocols.pdf` |
+| Fig. 3 — predicted vs. measured | `python make_figures_diagnostics.py` | `outputs/figures/fig_pred_scatter.pdf` |
+| Fig. 4 — field-strength CDF | `python make_figures_diagnostics.py` | `outputs/figures/fig_field_cdf.pdf` |
+| Fig. 5 — protocol × feature | `python make_figures.py` | `outputs/figures/fig2_protocol_feature.pdf` |
+| Fig. 6 — residual distribution per band | `python make_figures_diagnostics.py` | `outputs/figures/fig_residual_band.pdf` |
+| Fig. 7 — cost of an inter-device offset | `python make_figures.py` | `outputs/figures/fig4_device.pdf` |
 
 Additional analyses referenced in the text:
 
@@ -88,9 +87,8 @@ Additional analyses referenced in the text:
 | Embargo sensitivity (0/20/50 m, 0/60/300 s) | `python protocol_experiment.py --schemes stpbcv:0:0 stpbcv:20:60 stpbcv:50:300` | `outputs/protocol/protocol_aggregate.csv` |
 | Recovery of the unreported EWMA coefficient | `python sensitivity.py` | `outputs/tables/alpha_sensitivity.csv` |
 | Single-fit timing (Table V) | `python benchmark_speed.py` | `outputs/compare/timing.csv` |
-| Streaming estimator behind the latency discussion | `python realtime.py` | stdout |
 
-`make_paper_figs.py` caches the leave-one-group-out predictions in
+`make_figures_diagnostics.py` caches the leave-one-group-out predictions in
 `outputs/tables/predictions_logo.csv`; delete that file to recompute them
 (about 2–3 min on 8 cores).
 
@@ -102,10 +100,11 @@ python protocol_experiment.py
 python band_model_experiment.py --seeds 8 --jobs 8
 python label_confound_experiment.py
 python device_shift_experiment.py
+python deep_calibration_experiment.py
 python compare_models.py
 python campaign_logo_check.py
-python make_paper_figs.py
-python paper/make_figures.py
+python make_figures_diagnostics.py
+python make_figures.py
 ```
 
 Runtime is roughly 20–40 min on 8 CPU cores; `band_model_experiment.py` and

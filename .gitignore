@@ -26,3 +26,9 @@ desktop.ini
 bat_log.txt
 *.pdf
 !paper/figures/*.pdf
+
+# --- local working files (kept on disk, deliberately not published) -----------
+paper/
+docs/
+README.zh.md
+run.bat
