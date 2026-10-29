@@ -44,8 +44,8 @@ ds01/readme.txt
 ## Quick start
 
 ```bash
-git clone <this-repository>
-cd <this-repository>
+git clone https://github.com/347661070zlz-cloud/emf-inversion-audit.git
+cd emf-inversion-audit
 
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
