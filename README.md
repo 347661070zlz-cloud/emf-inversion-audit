@@ -68,7 +68,8 @@ previous results.
 | Table II — effect of the protocol | `python protocol_experiment.py` | `outputs/protocol/protocol_aggregate.csv` |
 | Table III — protocol × feature design | `python band_model_experiment.py` | `outputs/band_model/band_model_summary_random_stpbcv.csv` |
 | Table IV — within-band R² | `python band_model_experiment.py` | same file, columns `b*_R2` |
-| Table V — model comparison | `python compare_models.py` | `outputs/compare/model_summary.csv` |
+| Table V — model comparison (RH) | `python compare_models.py` | `outputs/compare/model_summary.csv` |
+| Table V — model comparison (ST-PB-CV) | `python compare_models_stpb.py` | `outputs/compare/model_summary_stpb.csv` |
 | Table VI — inter-device offset | `python device_shift_experiment.py` | `outputs/protocol/device_shift.csv` |
 | Fig. 1 — study area and folds | `python make_figures.py` | `outputs/figures/fig3_study_area.pdf` |
 | Fig. 2 — test MAE by protocol | `python make_figures.py` | `outputs/figures/fig1_protocols.pdf` |
@@ -102,6 +103,7 @@ python label_confound_experiment.py
 python device_shift_experiment.py
 python deep_calibration_experiment.py
 python compare_models.py
+python compare_models_stpb.py
 python campaign_logo_check.py
 python make_figures_diagnostics.py
 python make_figures.py
