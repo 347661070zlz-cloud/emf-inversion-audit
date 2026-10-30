@@ -1,12 +1,12 @@
-# Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
+# Beyond Random Splits: Protocol, Band and Device Effects in Smartphone-Based Electric-Field Inversion
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23758132.svg)](https://doi.org/10.5281/zenodo.23758132)
 
 Code and data pipeline for the paper:
 
-> Lianzhong Zheng and Juan Pan, "Rethinking the Reported Accuracy of Smartphone-Based
-> Electric-Field Inversion for Crowdsourced EMF Monitoring," *IEEE Access*
-> (under review).
+> Lianzhong Zheng and Juan Pan, "Beyond Random Splits: Protocol, Band and Device
+> Effects in Smartphone-Based Electric-Field Inversion for Crowdsourced EMF
+> Monitoring," *IEEE Access* (under review).
 
 Starting from a public smartphone measurement campaign, we reproduce a
 gradient-boosting electric-field inversion model and then vary three factors that
