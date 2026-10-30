@@ -87,7 +87,8 @@ Additional analyses referenced in the text:
 | Campaign-level hold-out check (1.33 dB) | `python campaign_logo_check.py` | `outputs/protocol/campaign_logo_summary.json` |
 | Embargo sensitivity (0/20/50 m, 0/60/300 s) | `python protocol_experiment.py --schemes stpbcv:0:0 stpbcv:20:60 stpbcv:50:300` | `outputs/protocol/protocol_aggregate.csv` |
 | Recovery of the unreported EWMA coefficient | `python sensitivity.py` | `outputs/tables/alpha_sensitivity.csv` |
-| Single-fit timing (Table V) | `python benchmark_speed.py` | `outputs/compare/timing.csv` |
+| Block-bootstrap CIs for the protocol gaps (Table III) | `python bootstrap_ci.py` | `outputs/bootstrap/bootstrap_ci.csv` |
+| Single-fit timing | `python benchmark_speed.py` | `outputs/compare/timing.csv` |
 
 `make_figures_diagnostics.py` caches the leave-one-group-out predictions in
 `outputs/tables/predictions_logo.csv`; delete that file to recompute them
@@ -98,6 +99,7 @@ Additional analyses referenced in the text:
 ```bash
 python run_all.py
 python protocol_experiment.py
+python bootstrap_ci.py
 python band_model_experiment.py --seeds 8 --jobs 8
 python label_confound_experiment.py
 python device_shift_experiment.py
