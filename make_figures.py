@@ -80,11 +80,13 @@ def fig_protocols():
 
     fig, ax = plt.subplots(figsize=(COL_W, 2.45))
     x = np.arange(len(d))
-    ax.bar(x, d["MAE_mean"], yerr=d["MAE_ci95"], width=0.55,
+    # ±1 SD across folds or seeds: 描述性离散度，不是推断性置信区间
+    # （折之间不独立，任何 t 区间都会低估不确定性；推断交给块 bootstrap 表）
+    ax.bar(x, d["MAE_mean"], yerr=d["MAE_std"], width=0.55,
            color=colors, edgecolor="black", linewidth=0.5, capsize=2.5,
            error_kw=dict(elinewidth=0.6, capthick=0.6))
     for xi, (_, r) in zip(x, d.iterrows()):
-        ax.text(xi, r["MAE_mean"] + r["MAE_ci95"] + 0.02,
+        ax.text(xi, r["MAE_mean"] + r["MAE_std"] + 0.02,
                 f'{r["MAE_mean"]:.3f}', ha="center", va="bottom", fontsize=7)
     ax.set_xticks(x)
     ax.set_xticklabels(label)

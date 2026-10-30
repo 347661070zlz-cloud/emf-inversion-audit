@@ -1,0 +1,954 @@
+--- 
++++ 
+@@ -2,5 +2,5 @@
+ Digital Object Identifier 10.1109/ACCESS.2026.XXXXXXX
+-Rethinking the Reported Accuracy of
+-Smartphone-Based Electric-Field Inversion for
+-Crowdsourced EMF Monitoring
++Beyond Random Splits: Protocol, Band and
++Device Effects in Smartphone-Based Electric-Field
++Inversion for Crowdsourced EMF Monitoring
+ LIANZHONG ZHENG1, AND JUAN PAN1
+@@ -11,17 +11,18 @@
+ ABSTRACT Smartphone-based inversion of electric field strength is attractive for crowdsourced electro-
+-magnetic environment monitoring, yet reported mean absolute errors (MAE) around 1 dB are almost always
+-obtained with a random train/test split of geo-referenced 1 Hz traces, a protocol in which neighbours of every
+-test sample remain in the training set. Using a public dataset of 46,306 samples, we reproduce a representative
+-gradient-boosting study and then audit how accuracy depends on three rarely varied factors. First, protocol:
+-the same model yields 0.97, 1.05 and 1.35 dB under a random hold-out, spatio-temporal patch-based cross-
+-validation with an embargo, and leave-one-group-out, respectively; protocol choice moves the estimate by
+-0.39 dB, more than twice the spread among six regressors. Second, features: adding the reported EARFCN
+-(E-UTRA absolute radio frequency channel number) reduces MAE from 1.05 to 0.73 dB and raises the
+-weakest-band R2 from −0.41 to 0.65; the size of the gain depends on how the label is defined and ranges from
+-15% to 31% across three definitions. Third, device calibration: input-space recalibration of the same handset
+-is absorbed by the tree ensemble, whereas a 2 dB inter-device offset degrades MAE by 30% and a 100-sample
+-output calibration recovers 65–75% of that loss. Even under the strictest protocol the band-aware model still
+-outperforms the originally reported random-split result, by 10% (25% under spatio-temporal blocking). We
+-conclude that protocol, feature set and device identity must be reported together, and give recommendations
+-for crowdsourced deployment.
++magnetic environment monitoring, yet reported mean absolute errors (MAE) around 1 dB are commonly
++obtained with a random train/test split of geo-referenced 1 Hz traces, a protocol in which neighbours of
++every test sample remain in the training set. Using a public dataset of 46,306 samples, we reproduce a
++representative gradient-boosting study and audit how accuracy depends on three rarely varied factors. First,
++protocol: the same model yields 0.97, 1.05 and 1.35 dB under a random hold-out, spatio-temporal patch-
++based cross-validation with an embargo, and leave-one-group-out, respectively; protocol choice moves the
++estimate by 0.39 dB, while the spread among six regressors collapses from 0.15 to 0.01 dB once the split
++is blocked. Second, band information: adding the reported EARFCN (E-UTRA absolute radio frequency
++channel number) reduces MAE from 1.05 to 0.73 dB and raises the weakest-band R2 from −0.41 to 0.65,
++both under the mixed labelling of the released data; the gain depends on the label definition and ranges
++from 15% to 31%. Third, device calibration: input-space recalibration of the same handset is absorbed by
++the tree ensemble, whereas a 2 dB inter-device offset degrades MAE by 30% and a 100-sample output
++calibration recovers 65–75% of that loss. Under the strictest protocol the band-aware model still beats the
++reported random-split result by 10% (25% under spatio-temporal blocking). We conclude that protocol, band
++information and device identity must be reported together, and give recommendations for crowdsourced
++deployment.
+ INDEX TERMS
+@@ -34,21 +35,34 @@
+ cost that fixed monitoring stations cannot match [1]–[3].
+-Regulatory frameworks such as the ICNIRP guidelines [4]
+-and IEEE C95.1 [5] define exposure limits in terms of the
+-electric field strength E, which a smartphone cannot measure
+-directly: the handset reports downlink quality indicators, most
+-notably the reference signal received power (RSRP), and a
+-calibration model must map them to E.
++Personal exposure varies strongly in space and time [4] and
++systematically between population groups [5], so the density
++of a campaign matters as much as the accuracy of each
++sample [6], and population-scale campaigns have been run
++with phone-based instruments [7]. Regulatory frameworks
++such as the ICNIRP guidelines [8] and IEEE C95.1 [9] define
++exposure limits in terms of the electric field strength E, which
++a smartphone cannot measure directly: the handset reports
++downlink quality indicators, most notably the reference signal
++received power (RSRP), and a calibration model must map
++them to E.
+ Early approaches used a fixed conversion factor derived
+-from standardized extrapolation procedures [6] and were lim-
+-ited to roughly 5 dB of accuracy in complex propagation
++from standardized extrapolation procedures [10] and were
++limited to roughly 5 dB of accuracy in complex propagation
+ environments. Subsequent work replaced the fixed factor with
+-a learned mapping. Zeng et al. [7] trained a gradient boosting
+-decision tree (GBDT) [8]–[10] on 23 features derived from
+-a seven-sample RSRP window and reported a coefficient of
+-determination R2 = 0.93 and MAE = 0.97 dB, an im-
+-provement of about 4 dB over the fixed factor. More recently,
+-Huang et al. [11] fused RSRP, RSSI, RSRQ and SINR in a
+-stacking ensemble and reached 0.71 dB, attributing the gain
+-to the complementary information carried by the additional
+-parameters.
++a learned mapping, and phones have served as exposure
++sensors with kriging interpolation [11] and as subjects of
++their own accuracy assessment [12], and software-modified
++handsets have been used to validate self-reported use [13] and
++to estimate transmitted power density [14]. Zeng et al. [15]
++trained a gradient boosting decision tree (GBDT) [16]–[18]
++on 23 features derived from a seven-sample RSRP window
++and reported a coefficient of determination R2 = 0.93 and
++MAE = 0.97 dB, an improvement of about 4 dB over the
++VOLUME XX, 2026
++1
++
++Zheng et al.: Beyond Random Splits in Smartphone-Based EMF Inversion
++fixed factor. More recently, Huang et al. [19] fused RSRP,
++RSSI, RSRQ and SINR in a stacking ensemble and reached
++0.71 dB, attributing the gain to the complementary informa-
++tion carried by the additional parameters.
+ Both results were obtained with a random 80/20 split of
+@@ -60,10 +74,9 @@
+ times that were never measured. Spatial and temporal block-
+-VOLUME XX, 2026
+-1
+-
+-Zheng et al.: Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
+ ing are standard practice in geostatistics and remote sensing
+-[12]–[16], but have not, to our knowledge, been applied to
++[20]–[24], but have not, to our knowledge, been applied to
+ smartphone-based EMF inversion, and the magnitude of the
+-resulting bias is unknown.
++resulting bias is unknown. The practice is not uncontested
++[25], but where the target is prediction at locations that were
++never visited, the blocked estimate is the one that matches the
++use case [26].
+ A second observation motivates this work. The handset
+@@ -94,4 +107,4 @@
+ device is absorbed by the model, whereas cross-device
+-calibration is essential, and we quantify how many
+-labelled samples it requires.
++calibration matters, at least in simulation, and we quan-
++tify how many labelled samples it requires.
+ The remainder of the paper is organised as follows. Sec-
+@@ -103,17 +116,4 @@
+ A. MEASUREMENT SETUP
+-The public dataset of [7] was acquired on a campus area of
++The public dataset of [15] was acquired on a campus area of
+ about 380 × 260 m during five campaigns on three days in
+-May and June 2023, with four Long Term Evolution (LTE)
+-downlink bands (EARFCN 100, 1850, 1300 and 38400, i.e.
+-2110–2130, 1860–1880, 1805–1825 and 1885–1905 MHz).
+-A smartphone application logged RSRP (defined in 3GPP
+-TS 36.214 [17]) at approximately 1 Hz while a spectrum
+-analyzer with an isotropic antenna scanned the corresponding
+-downlink band; the two streams were aligned by timestamp.
+-The released table contains 46,306 samples, each with a GPS
+-fix (100% match), which is what makes the blocking schemes
+-of Section III possible.
+-B. FEATURE CONSTRUCTION
+-For each field-strength timestamp, the RSRP series is cleaned
+-at −110 dBm, smoothed by an exponentially weighted mov-
+ TABLE 1. Reproduction of the baseline model (random 80/20 split).
+@@ -123,3 +123,3 @@
+ MAE (dB)
+-Training set, reported [7]
++Training set, reported [15]
+ 0.94
+@@ -133,3 +133,3 @@
+ 0.9312
+-Test set, reported [7]
++Test set, reported [15]
+ 0.93
+@@ -143,20 +143,15 @@
+ 0.9574
+-0
+-200
+-400
+-x (m)
+-0
+-100
+-200
+-y (m)
+-(a) spatial patch
+-0
+-200
+-400
+-x (m)
+-(b) spatial patch × time
+-FIGURE 1. Study area with samples coloured by fold (five folds). (a)
+-50 m spatial patches: a whole patch belongs to one fold. (b) Patches
+-crossed with 10 min time windows: the same patch appears in several
+-folds at different times.
++May and June 2023, with four Long Term Evolution (LTE)
++downlink bands (EARFCN 100, 1850, 1300 and 38400, i.e.
++2110–2130, 1860–1880, 1805–1825 and 1885–1905 MHz).
++A smartphone application logged RSRP (defined in 3GPP
++TS 36.214 [27]) at approximately 1 Hz while a spectrum
++analyzer with an isotropic antenna scanned the corresponding
++downlink band; the two streams were aligned by timestamp.
++The released table contains 46,306 samples, each with a GPS
++fix (100% match), which is what makes the blocking schemes
++of Section III possible.
++B. FEATURE CONSTRUCTION
++For each field-strength timestamp, the RSRP series is cleaned
++at −110 dBm, smoothed by an exponentially weighted mov-
+ ing average (EWMA) and resampled on a 1 s grid with
+@@ -195,23 +190,21 @@
+ 
+-Zheng et al.: Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
+-TABLE 2. Effect of the evaluation protocol on the same model and
+-features.
+-Protocol
+-Folds
+-MAE (dB) RMSE (dB) pooled R2
+-RH (8 seeds)
+-8
+-0.966
+-1.261
+-0.934
+-ST-PB-CV + embargo
+-5
+-1.046
+-1.351
+-0.924
+-LOGO-CV
+-10
+-1.353
+-1.637
+-0.886
++Zheng et al.: Beyond Random Splits in Smartphone-Based EMF Inversion
++0
++200
++400
++x (m)
++0
++100
++200
++y (m)
++(a) spatial patch
++0
++200
++400
++x (m)
++(b) spatial patch × time
++FIGURE 1. Study area with samples coloured by fold (five folds). (a)
++50 m spatial patches: a whole patch belongs to one fold. (b) Patches
++crossed with 10 min time windows: the same patch appears in several
++folds at different times.
+ 1.3 m) in the training set. Measured on the reproduction split,
+@@ -251,12 +244,47 @@
+ increases from 0.966 dB (RH) to 1.046 dB (ST-PB-CV) and
+-1.353 dB (LOGO-CV). The gap between the loosest and the
+-strictest protocol is 0.39 dB, or 40%.
+-Fig. 3 shows the same effect sample by sample. Under the
+-random hold-out the cloud of predictions is tight around the
+-identity line and the per-band means stay close to it. Under
+-LOGO-CV the cloud widens and the band means drift off the
+-line, reaching +0.98 dB for EARFCN 100, while the global
+-bias stays small (+0.11 dB). The loss is therefore dispersion
+-plus a band-dependent shift, not a constant offset that a single
+-global correction could remove.
++1.353 dB (LOGO-CV). Folds are not independent samples,
++so we do not attach a standard error to each mean. Instead we
++TABLE 2. Effect of the evaluation protocol on the same model and
++features.
++Protocol
++Folds MAE (dB)
++RMSE (dB) pooled R2
++RH (8 seeds)
++8
++0.966
++1.261
++0.934
++ST-PB-CV + embargo
++5
++1.046
++1.351
++0.924
++LOGO-CV
++10
++1.353
++1.637
++0.886
++The RH row averages eight seeds; the baseline of Table 4 averages three,
++which is why the two differ by 0.003 dB.
++TABLE 3. Block-bootstrap intervals for the test MAE (2000 resamples of
++the 634 spatio-temporal blocks, applied jointly to all three protocols). RH
++here uses the seed-42 split; the eight-seed mean in Table 2 is 0.966 dB.
++Quantity
++Estimate
++95% CI
++RH
++0.956
++0.909–1.001
++ST-PB-CV
++1.046
++1.001–1.090
++LOGO-CV
++1.356
++1.311–1.400
++ST-PB-CV −RH
+++0.091
+++0.073 to +0.109
++LOGO-CV −RH
+++0.400
+++0.365 to +0.434
+ Random
+@@ -276,39 +304,20 @@
+ FIGURE 2. Test MAE under the three protocols. Error bars are 95%
+-confidence intervals over folds or seeds.
+-B. WHY THE COEFFICIENT OF DETERMINATION
+-MISLEADS
+-Pooled R2 barely changes across protocols (0.934, 0.924
+-and 0.886) while MAE changes by 40%. The reason is that
+-R2 is dominated by the between-band spread of the field
+-strength, which blocking does not remove. Fig. 4 shows the
+-two mechanisms at work. Under the random split the training
+-and test CDFs of the field strength are indistinguishable
+-(Kolmogorov–Smirnov D = 0.012, p = 0.27): the marginals
+-match exactly, so a distributional check cannot detect the
+-leakage, which resides in the joint spatio-temporal structure.
+-Under LOGO-CV the ten (campaign, band) groups each oc-
+-cupy a narrow slice of the 13.3 dB spanned by their means,
+-so a held-out group is internally quiet (σ = 0.73–2.81 dB).
+-An error of 1.4 dB then produces a negative per-fold R2: the
+-values range from −2.62 to 0.61 with a mean of −0.18, even
+-though the MAE is unremarkable. Pooling the predictions
+-restores a meaningful value (0.886). We therefore recommend
+-that this literature report MAE and RMSE, and pooled R2 if
+-a coefficient of determination is required.
+-C. BAND INFORMATION
+-The baseline model is band-agnostic, and this, rather than
+-the information content of RSRP, explains why its within-
+-band accuracy is poor. Adding EARFCN as a single numeric
+-feature reduces MAE from 1.046 to 0.730 dB under ST-PB-
+-CV (Table 3, Fig. 5) and raises the pooled R2 from 0.924 to
+-0.958. Training four independent models, one per band and
+-selected at inference by the current EARFCN, gives 0.737 dB,
+-a difference well inside the fold-to-fold spread (±0.04 dB).
+-Since a tree ensemble can already split on EARFCN, a per-
+-band model duplicates information that a single model ob-
+-tains for free, at four times the maintenance cost.
+-The within-band R2 changes accordingly (Table 4). For
+-EARFCN 100 it moves from −0.41 to 0.65 and for EAR-
+-FCN 38400 from 0.67 to 0.88. A model that does not know
+-the band can only learn one averaged mapping and is system-
++confidence intervals over folds or seeds; Table 3 reports block-bootstrap
++intervals that account for correlation within a block.
++resample the 634 spatio-temporal blocks with replacement—
++the same unit that defines the ST-PB-CV folds—applying
++each resample jointly to all three protocols so that the dif-
++ferences are paired at the block level (Table 3). Both gaps
++survive: +0.09 dB (95% CI 0.07–0.11) for ST-PB-CV and
+++0.40 dB (0.36–0.43) for LOGO-CV. The 8% gap is there-
++fore real but small, and the 40% gap is the one a deployment
++should plan for.
++Fig. 3 shows the same effect sample by sample. Under the
++random hold-out the cloud of predictions is tight around the
++identity line and the per-band means stay close to it. Under
++LOGO-CV the cloud widens and the band means drift off the
++line, reaching +0.98 dB for EARFCN 100, while the global
++bias stays small (+0.11 dB). The loss is therefore dispersion
++plus a band-dependent shift, not a constant offset that a single
++global correction could remove.
+ VOLUME XX, 2026
+@@ -316,3 +325,3 @@
+ 
+-Zheng et al.: Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
++Zheng et al.: Beyond Random Splits in Smartphone-Based EMF Inversion
+ 85
+@@ -356,2 +365,83 @@
+ the identity line as the protocol is tightened.
++B. WHY THE COEFFICIENT OF DETERMINATION
++MISLEADS
++Pooled R2 barely changes across protocols (0.934, 0.924
++and 0.886) while MAE changes by 40%. The reason is that
++R2 is dominated by the between-band spread of the field
++strength, which blocking does not remove. Fig. 4 shows the
++two mechanisms at work. Under the random split the training
++and test CDFs of the field strength are indistinguishable
++(Kolmogorov–Smirnov D = 0.012, p = 0.27): the marginals
++match exactly, so a distributional check cannot detect the
++leakage, which resides in the joint spatio-temporal structure.
++Under LOGO-CV the ten (campaign, band) groups each oc-
++cupy a narrow slice of the 13.3 dB spanned by their means,
++so a held-out group is internally quiet (σ = 0.73–2.81 dB).
++An error of 1.4 dB then produces a negative per-fold R2: the
++values range from −2.62 to 0.61 with a mean of −0.18, even
++though the MAE is unremarkable. Pooling the predictions
++restores a meaningful value (0.886). We therefore recommend
++that this literature report MAE and RMSE, and pooled R2 if
++a coefficient of determination is required.
++C. BAND INFORMATION
++The baseline model is band-agnostic, and this, rather than
++the information content of RSRP, explains why its within-
++band accuracy is poor. Adding EARFCN as a single numeric
++feature reduces MAE from 1.046 to 0.730 dB under ST-PB-
++CV (Table 4) and raises the pooled R2 from 0.924 to 0.958.
++Training four independent models, one per band and selected
++at inference by the current EARFCN, gives 0.737 dB, a dif-
++ference well inside the fold-to-fold spread (±0.04 dB). Since
++TABLE 4. Protocol × feature design. Entries are test MAE in dB.
++RH
++ST-PB-CV
++LOGO-CV
++RSRP only (baseline)
++0.969
++1.046
++1.353
+++ EARFCN (single model)
++0.667
++0.730
++0.871
++Per-band models (four)
++0.628
++0.737
++0.868
++TABLE 5. Within-band R2 under ST-PB-CV with and without the EARFCN
++feature.
++100
++1850 1300 38400
++RSRP only
++−0.41
++0.65
++0.40
++0.67
+++ EARFCN
++0.65
++0.74
++0.57
++0.88
++a tree ensemble can already split on EARFCN, a per-band
++model duplicates information that a single model obtains for
++free, at four times the maintenance cost.
++The within-band R2 changes accordingly (Table 5). For
++EARFCN 100 it moves from −0.41 to 0.65 and for EAR-
++FCN 38400 from 0.67 to 0.88. A model that does not know
++the band can only learn one averaged mapping and is system-
++atically offset in every band; once the band is known, the band
++level and the within-band variation can be learned separately.
++Fig. 5 makes the offset explicit on all 9,262 samples of the
++random hold-out. The band-agnostic model is displaced in
++every band—by +0.49 dB for EARFCN 100 and −0.51 dB
++for EARFCN 1300—and its interquartile range is wider. With
++EARFCN the bias falls below 0.01 dB in all four bands and
++the boxes narrow, so the feature removes a band-dependent
++offset rather than merely sharpening the mapping.
++We note that part of what the model learns from EARFCN
++is the label definition itself (third quartile versus maximum).
++4
++VOLUME XX, 2026
++
++Zheng et al.: Beyond Random Splits in Smartphone-Based EMF Inversion
+ 85
+@@ -396,183 +486,2 @@
+ LOGO-CV each occupy a narrow slice of the range, which is why per-fold R2 is unstable.
+-atically offset in every band; once the band is known, the band
+-level and the within-band variation can be learned separately.
+-Fig. 6 makes the offset explicit on all 9,262 samples of the
+-random hold-out. The band-agnostic model is displaced in
+-every band—by +0.49 dB for EARFCN 100 and −0.51 dB
+-for EARFCN 1300—and its interquartile range is wider. With
+-EARFCN the bias falls below 0.01 dB in all four bands and
+-the boxes narrow, so the feature removes a band-dependent
+-offset rather than merely sharpening the mapping.
+-We note that part of what the model learns from EARFCN
+-is the label definition itself (third quartile versus maximum).
+-This is legitimate for deployment, because the definition is
+-fixed, but it should not be read as a purely physical gain. To
+-quantify the artefact we retrained under three label defini-
+-4
+-VOLUME XX, 2026
+-
+-Zheng et al.: Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
+-TABLE 3. Protocol × feature design. Entries are test MAE in dB.
+-RH
+-ST-PB-CV
+-LOGO-CV
+-RSRP only (baseline)
+-0.969
+-1.046
+-1.353
+-+ EARFCN (single model)
+-0.667
+-0.730
+-0.871
+-Per-band models (four)
+-0.628
+-0.737
+-0.868
+-Random hold-out
+-ST-PB-CV + embargo
+-0.0
+-0.2
+-0.4
+-0.6
+-0.8
+-1.0
+-Test MAE (dB)
+-0.969
+-1.046
+-0.667
+-0.730
+-reported 0.97 dB
+-RSRP only (baseline)
+-+ EARFCN
+-FIGURE 5. Two independent factors. Even under the strict protocol, the
+-band-aware model (0.730 dB) beats the originally reported random-split
+-value (0.97 dB).
+-tions: the mixed definition used above (q3 for EARFCN 100,
+-max for the others), a uniform-max definition, and a uniform-
+-q3 definition. These runs use a regenerated feature table of
+-47,318 samples rather than the 46,306 released samples of
+-Tables 3 and 4; their absolute MAE is therefore not directly
+-comparable with those tables, and only the comparison within
+-a single table is meaningful. Under ST-PB-CV the mixed
+-definition gives an EARFCN gain of 22.6% (1.07 to 0.83 dB),
+-the uniform-max definition 15.4% (1.00 to 0.85 dB), and the
+-uniform-q3 definition 31.5% (1.13 to 0.77 dB). The mixed
+-definition therefore inflates the apparent feature gain by about
+-50% relative to the uniform-max baseline. More importantly,
+-the band with the most negative within-band R2 changes with
+-the label definition, which confirms that the ‘‘weakest band’’
+-is a property of the label choice rather than of the propagation
+-physics.
+-D. MODEL CHOICE
+-To place the protocol effect in context we compared six
+-regressors under an identical tuning budget (three-fold grid
+-search, ten seeds), including random forests [18]–[20], XG-
+-Boost [21] and LightGBM [22] (Table 5). The spread between
+-the best and the worst tree ensemble is 0.15 dB, and between
+-TABLE 4. Within-band R2 under ST-PB-CV with and without the EARFCN
+-feature.
+-100
+-1850 1300
+-38400
+-RSRP only
+-−0.41
+-0.65
+-0.40
+-0.67
+-+ EARFCN
+-0.65
+-0.74
+-0.57
+-0.88
+-TABLE 5. Model comparison under random hold-out (ten seeds, MAE in
+-dB). Fit time is a single fit on one CPU core and is indicative only; it is not
+-normalised across machines.
+-Regressor
+-Test MAE
+-R2
+-Fit time (s)
+-Extra trees (300)
+-0.750
+-0.953
+-5
+-Random forest (300)
+-0.797
+-0.950
+-15
+-XGBoost (800)
+-0.852
+-0.945
+-5
+-LightGBM (800)
+-0.867
+-0.944
+-2
+-GBDT, retuned
+-0.902
+-0.941
+-105
+-GBDT, published [7]
+-0.966
+-0.934
+-52
+-Ridge regression
+-1.366
+-0.882
+-0.02
+-TABLE 6. Inter-device RSRP offset δ (ST-PB-CV, five folds). MAE in dB.
+-δ (dB)
+-0
+-1
+-2
+-3
+-5
+-Uncalibrated
+-1.046 1.133
+-1.360
+-1.718
+-2.585
+-Calibrated (100 samples)
+-1.048 1.079
+-1.149
+-1.256
+-1.431
+-the best ensemble and the published GBDT configuration
+-0.22 dB—well below the 0.39 dB protocol effect.
+-E. RANKING OF FACTORS
+-Combining Sections IV-A, -C and -D, the accuracy of this
+-class of models is governed by, in decreasing order of influ-
+-ence, the evaluation protocol (0.39 dB), the availability of
+-band information (0.32 dB) and the choice of model (0.15–
+-0.22 dB). Reporting a model without stating the protocol is
+-therefore uninformative.
+-V. DEVICE CALIBRATION
+-Crowdsourcing implies heterogeneous handsets. RSRP car-
+-ries a device-dependent offset of several dB arising from
+-antenna gain, front-end loss and firmware reporting conven-
+-tions, and the model has only ever seen the reference handset.
+-A. INTER-DEVICE OFFSET
+-To estimate the impact we add a constant offset δ to the RSRP
+-features of the test set (positional features shift, dispersion
+-features scale, and the coefficient of variation is recomputed)
+-and evaluate under ST-PB-CV. Table 6 shows that a 2 dB
+-offset increases MAE by 30% and a 5 dB offset by 148%. A
+-100-sample output-bias calibration, estimated per band from
+-labelled samples disjoint from the test folds, recovers 65–75%
+-of the loss.
+-B. WHY SAME-DEVICE INPUT CALIBRATION DOES NOT
+-WORK
+-A natural proposal is to characterise the radio-frequency re-
+-sponse of a given handset—antenna gain versus frequency,
+-front-end linearity, analogue-to-digital conversion bias—and
+-to correct RSRP before inversion. We tested this directly:
+-applying a fixed affine correction to all RSRP features, con-
+-sistently to training and test data, changes MAE from 1.0464
+-to 1.0458 dB, a difference of −0.001 dB. The reason is
+-structural: a tree ensemble compares feature values only, so it
+-is invariant to any monotone per-feature transformation, and
+-the correction is absorbed by the model.
+-VOLUME XX, 2026
+-5
+-
+-Zheng et al.: Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
+ EARFCN 100
+@@ -598,5 +507,107 @@
+ mean (bias)
+-FIGURE 6. Residual distribution per band on the full random-hold-out test set (9,262 samples). Boxes span the interquartile range, whiskers 1.5×IQR,
++FIGURE 5. Residual distribution per band on the full random-hold-out test set (9,262 samples). Boxes span the interquartile range, whiskers 1.5×IQR,
+ diamonds the mean (bias), and the dashed line is zero. The band-agnostic model is displaced in every band; adding EARFCN centres all four distributions
+ on zero and narrows them.
++This is legitimate for deployment, because the definition is
++fixed, but it should not be read as a purely physical gain. To
++quantify the artefact we retrained under three label defini-
++tions: the mixed definition used above (q3 for EARFCN 100,
++max for the others), a uniform-max definition, and a uniform-
++q3 definition. These runs use a regenerated feature table of
++47,318 samples rather than the 46,306 released samples of
++Tables 4 and 5; their absolute MAE is therefore not directly
++comparable with those tables, and only the comparison within
++a single table is meaningful. The reconstruction has 2.2%
++more rows in every band and campaign, so the two tables
++are not nested subsets. Under ST-PB-CV the mixed definition
++gives an EARFCN gain of 22.6% (1.07 to 0.83 dB), the
++uniform-max definition 15.4% (1.00 to 0.85 dB), and the
++uniform-q3 definition 31.5% (1.13 to 0.77 dB). The mixed
++definition therefore inflates the apparent feature gain by about
++50% relative to the uniform-max baseline. More importantly,
++the band with the most negative within-band R2 changes with
++VOLUME XX, 2026
++5
++
++Zheng et al.: Beyond Random Splits in Smartphone-Based EMF Inversion
++TABLE 6. Model comparison under the random hold-out (RH, ten seeds)
++and under ST-PB-CV (five folds). Hyperparameters were tuned under RH
++and applied unchanged to both protocols. MAE in dB; R2 is pooled over
++seeds or folds.
++RH
++ST-PB-CV
++Regressor
++MAE
++R2
++MAE
++R2
++Extra trees (300)
++0.750 0.953 1.043 0.922
++Random forest (300)
++0.797 0.950 1.041 0.923
++XGBoost (800)
++0.852 0.945 1.039 0.923
++LightGBM (800)
++0.867 0.944 1.030 0.924
++GBDT, retuned
++0.902 0.941 1.038 0.924
++GBDT, published [15] 0.966 0.935 1.047 0.924
++Ridge regression
++1.366 0.882 1.373 0.880
++the label definition, which confirms that the ‘‘weakest band’’
++is a property of the label choice rather than of the propagation
++physics.
++D. MODEL CHOICE
++To place the protocol effect in context we compared six
++regressors, five tree ensembles and a ridge baseline, under an
++identical tuning budget (Table 6): random forests [28]–[30],
++XGBoost [31] and LightGBM [32]. Under RH the ranking
++is wide: Extra trees beats the published GBDT configuration
++by 0.22 dB and the five ensembles span 0.15 dB. Under
++ST-PB-CV the same models with the same hyperparameters
++collapse onto each other: the five ensembles span 0.012 dB,
++their pooled R2 lie within 0.002 of each other, and none is dis-
++tinguishable from the published configuration. The advantage
++of Extra trees is therefore itself a leakage artefact—a low-bias
++learner benefits most from having near-duplicates of the test
++points in the training set—and model choice, a 0.15 dB effect
++under RH, is negligible once the split is blocked.
++E. INTERACTION BETWEEN PROTOCOL AND FEATURES
++The three effects are not additive. Table 4 decomposes them:
++the EARFCN gain grows from 0.30 dB under RH to 0.32 dB
++under ST-PB-CV and 0.48 dB under LOGO-CV, while the
++penalty for the strictest protocol shrinks from 0.38 dB for the
++band-agnostic model to 0.20 dB once the band is known. Part
++of what looks like a protocol penalty is therefore a model that
++does not know which band it is predicting, and at LOGO-
++CV the band gain exceeds the entire baseline protocol effect.
++The two factors are comparable in magnitude and entangled;
++model choice is second-order under the random split (0.15–
++0.22 dB) and negligible under blocking (0.01 dB). Reporting
++a model without stating either the protocol or the feature
++set is consequently uninformative. The band gains above are
++measured under the mixed labelling of the released data, for
++the reason given in Section IV-C.
++V. DEVICE CALIBRATION
++Crowdsourcing implies heterogeneous handsets. RSRP car-
++ries a device-dependent offset of several dB arising from
++antenna gain, front-end loss and firmware reporting conven-
++tions, and the model has only ever seen the reference handset.
++TABLE 7. Inter-device RSRP offset δ (ST-PB-CV, five folds). MAE in dB.
++δ (dB)
++0
++1
++2
++3
++5
++Uncalibrated
++1.046 1.133
++1.360
++1.718
++2.585
++Calibrated (100 samples)
++1.048 1.079
++1.149
++1.256
++1.431
+ 0
+@@ -619,4 +630,26 @@
+ Calibrated (100 samples)
+-FIGURE 7. Cost of an inter-device offset and benefit of a 100-sample
++FIGURE 6. Cost of an inter-device offset and benefit of a 100-sample
+ output calibration.
++A. INTER-DEVICE OFFSET
++To estimate the impact we add a constant offset δ to the RSRP
++features of the test set (positional features shift, dispersion
++features scale, and the coefficient of variation is recomputed)
++and evaluate under ST-PB-CV. Table 7 shows that a 2 dB
++offset increases MAE by 30% and a 5 dB offset by 148%. A
++100-sample output-bias calibration, estimated per band from
++labelled samples disjoint from the test folds, recovers 65–75%
++of the loss. At δ = 0 the calibrated model is 0.002 dB worse,
++which is estimation noise from the 100 calibration samples.
++B. WHY SAME-DEVICE INPUT CALIBRATION DOES NOT
++WORK
++A natural proposal is to characterise the radio-frequency re-
++sponse of a given handset—antenna gain versus frequency,
++front-end linearity, analogue-to-digital conversion bias—and
++to correct RSRP before inversion. We tested this directly:
++applying a fixed affine correction to all RSRP features, con-
++sistently to training and test data, changes MAE from 1.0464
++to 1.0458 dB, a difference of −0.001 dB. The reason is
++structural: a tree ensemble compares feature values only, so it
++is invariant to any monotone per-feature transformation, and
++the correction is absorbed by the model.
+ Calibration therefore pays off only across devices, where
+@@ -627,2 +660,6 @@
+ actually remove.
++6
++VOLUME XX, 2026
++
++Zheng et al.: Beyond Random Splits in Smartphone-Based EMF Inversion
+ C. EVALUATION DISCIPLINE
+@@ -648,3 +685,18 @@
+ and any cross-device calibration.
+-C. LIMITATIONS
++C. ERROR BUDGET AND COMPLIANCE
++The absolute accuracy has to be read against the use it is
++put to. Compliance assessment under IEC 62232 requires
++an explicit measurement-uncertainty budget [33]; for a cal-
++ibrated broadband probe in the field that budget is of the
++order of 2 dB (k = 2), so an inversion error below it does
++not by itself degrade a compliance decision. The mean field
++strengths here (87–99 dBµV/m, i.e. 0.02–0.09 V/m) lie 55–
++70 dB below the ICNIRP reference level of 61 V/m at 2 GHz
++[8], so in this environment neither 0.97 nor 1.35 dB can
++change a verdict. What the error does determine is whether
++phone-based estimates support exposure mapping and trend
++detection, and there the difference is material: the 12.4 dB
++contrast between band means is 13 times the MAE under the
++random split but only 9 times under LOGO-CV.
++D. LIMITATIONS
+ All measurements come from a single handset and a single
+@@ -656,3 +708,3 @@
+ complementary to, or overlapping with, the gain reported for
+-multi-parameter inputs [11]. Finally, widening the embargo
++multi-parameter inputs [19]. Finally, widening the embargo
+ from 0 m/0 s to 20 m/60 s and then to 50 m/300 s increases
+@@ -670,6 +722,2 @@
+ smartphone-based EMF inversion model and then varied
+-6
+-VOLUME XX, 2026
+-
+-Zheng et al.: Rethinking the Reported Accuracy of Smartphone-Based Electric-Field Inversion
+ three factors that are usually fixed by convention. The eval-
+@@ -681,9 +729,10 @@
+ the label is defined. Device calibration matters only across
+-devices, and a few hundred labelled samples suffice; under the
+-strictest protocol the band-aware model still beats the reported
+-random-split accuracy by 10%. We therefore suggest that
+-protocol, feature set and device identity be reported together.
++devices, at least in simulation, and a few hundred labelled
++samples suffice; under the strictest protocol the band-aware
++model still beats the reported random-split accuracy by 10%.
++We therefore suggest that protocol, feature set and device
++identity be reported together.
+ APPENDIX A RECOVERING UNREPORTED
+ IMPLEMENTATION DETAILS
+-Three details absent from [7] had to be recovered from the
++Three details absent from [15] had to be recovered from the
+ released sample table.
+@@ -710,3 +759,3 @@
+ (doi:10.6084/
+-m9.figshare.25034537.v1) [7]; the code that regenerates
++m9.figshare.25034537.v1) [15]; the code that regenerates
+ every table and figure is archived at doi:10.5281/zenodo.
+@@ -715,4 +764,4 @@
+ ACKNOWLEDGMENT
+-The authors thank the authors of [7] for releasing their dataset
+-and code.
++The authors thank the authors of [15] for releasing their
++dataset and code.
+ REFERENCES
+@@ -729,3 +778,22 @@
+ no. 9, pp. 140–150, Sep. 2010, doi: 10.1109/MCOM.2010.5560598.
+-[4] International Commission on Non-Ionizing Radiation Protection, ‘‘Guide-
++[4] L. E. Birks, B. Struchen, M. Eeftens, L. Van Wel, A. Huss, P. Gajšek, et
++al., ‘‘Spatial and temporal variability of personal environmental exposure
++to radio frequency electromagnetic fields in children in Europe,’’ Environ.
++Int., vol. 117, pp. 204–214, 2018, doi: 10.1016/j.envint.2018.04.026.
++VOLUME XX, 2026
++7
++
++Zheng et al.: Beyond Random Splits in Smartphone-Based EMF Inversion
++[5] M. Eeftens, B. Struchen, L. E. Birks, E. Cardis, M. Estarlich, M. F. Fernan-
++dez, et al., ‘‘Personal exposure to radio-frequency electromagnetic fields in
++Europe: Is there a generation gap?’’ Environ. Int., vol. 121, pp. 216–226,
++2018, doi: 10.1016/j.envint.2018.09.002.
++[6] C. R. Bhatt, S. Henderson, C. Brzozek, and G. Benke, ‘‘Instruments to
++measure environmental and personal radiofrequency-electromagnetic field
++exposures: An update,’’ Phys. Eng. Sci. Med., vol. 45, no. 3, pp. 687–704,
++2022, doi: 10.1007/s13246-022-01146-y.
++[7] Y. Boussad, X. L. Chen, A. Legout, A. Chaintreau, and W. Dabbous, ‘‘Lon-
++gitudinal study of exposure to radio frequencies at population scale,’’ Env-
++iron. Int., vol. 162, p. 107144, 2022, doi: 10.1016/j.envint.2022.107144.
++[8] International Commission on Non-Ionizing Radiation Protection, ‘‘Guide-
+ lines for limiting exposure to electromagnetic fields (100 kHz to
+@@ -733,6 +801,6 @@
+ doi: 10.1097/HP.0000000000001210.
+-[5] IEEE, ‘‘IEEE Standard for Safety Levels with Respect to Human Exposure
++[9] IEEE, ‘‘IEEE Standard for Safety Levels with Respect to Human Exposure
+ to Electric, Magnetic, and Electromagnetic Fields, 0 Hz to 300 GHz,’’ IEEE
+ Std C95.1-2019, 2019, doi: 10.1109/IEEESTD.2019.8859679.
+-[6] S. Schießl, T. Ta, T. Kopacz, and D. Heberling, ‘‘Konzept und Mes-
++[10] S. Schießl, T. Ta, T. Kopacz, and D. Heberling, ‘‘Konzept und Mes-
+ sungen für ein Smartphone-basiertes Immissions-Monitoring-System,’’
+@@ -740,3 +808,20 @@
+ Verträglichkeit, Cologne, Germany, 2020, doi: 10.15488/10060.
+-[7] S. Zeng, W. Chen, Y. Ji, L. Yan, and X. Zhao, ‘‘Measurement and cali-
++[11] S. Schießl, T. Kopacz, and D. Heberling, ‘‘Towards a crowdsourcing-based
++EMF exposure monitoring: Evaluation of smartphone measurements using
++kriging,’’ in Proc. 15th Eur. Conf. Antennas Propag. (EuCAP), Düsseldorf,
++Germany, 2021, doi: 10.23919/EuCAP51087.2021.9410984.
++[12] Y. Boussad, M. N. Mahfoudi, A. Legout, L. Lizzi, F. Ferrero,
++and W. Dabbous, ‘‘Evaluating smartphone accuracy for RSSI mea-
++surements,’’ IEEE Trans. Instrum. Meas., vol. 70, pp. 1–12, 2021,
++doi: 10.1109/TIM.2020.3048776.
++[13] G. Goedhart, M. Vrijheid, J. Wiart, M. Hours, H. Kromhout, E. Cardis,
++et al., ‘‘Using software-modified smartphones to validate self-reported
++mobile phone use in young people: A pilot study,’’ Bioelectromagnetics,
++vol. 36, no. 7, pp. 538–543, 2015, doi: 10.1002/bem.21931.
++[14] C. R. Bhatt, M. Redmayne, M. J. Abramson, M. R. Sim, C. Brzozek,
++B. M. Zeleke, and G. Benke, ‘‘Estimating transmitted power density from
++mobile phone: An epidemiological pilot study with a software modified
++phone,’’ Australas. Phys. Eng. Sci. Med., vol. 41, no. 4, pp. 985–991, 2018,
++doi: 10.1007/s13246-018-0699-7.
++[15] S. Zeng, W. Chen, Y. Ji, L. Yan, and X. Zhao, ‘‘Measurement and cali-
+ bration of EMF: A study using phone and GBDT for mobile communi-
+@@ -744,12 +829,12 @@
+ doi: 10.1029/2023RS007890.
+-[8] J. H. Friedman, ‘‘Greedy function approximation: A gradient boost-
++[16] J. H. Friedman, ‘‘Greedy function approximation: A gradient boost-
+ ing machine,’’ Ann. Statist., vol. 29, no. 5, pp. 1189–1232, 2001,
+ doi: 10.1214/aos/1013203451.
+-[9] J. H. Friedman, ‘‘Stochastic gradient boosting,’’ Comput. Statist.
++[17] J. H. Friedman, ‘‘Stochastic gradient boosting,’’ Comput. Statist.
+ Data Anal., vol. 38, no. 4, pp. 367–378, 2002, doi: 10.1016/S0167-
+ 9473(01)00065-2.
+-[10] T. Hastie, R. Tibshirani, and J. Friedman, The Elements of Statistical
++[18] T. Hastie, R. Tibshirani, and J. Friedman, The Elements of Statistical
+ Learning: Data Mining, Inference, and Prediction, 2nd ed. New York, NY,
+ USA: Springer, 2009, doi: 10.1007/978-0-387-84858-7.
+-[11] Q. Huang, S. Zeng, X. Zhao, and L. Yan, ‘‘Research on measurement
++[19] Q. Huang, S. Zeng, X. Zhao, and L. Yan, ‘‘Research on measurement
+ and perception of wireless communication electromagnetic environment
+@@ -757,3 +842,3 @@
+ doi: 10.12265/j.cjors.2026025.
+-[12] D. R. Roberts, V. Bahn, S. Ciuti, M. S. Boyce, J. Elith, G. Guillera-
++[20] D. R. Roberts, V. Bahn, S. Ciuti, M. S. Boyce, J. Elith, G. Guillera-
+ Arroita, et al., ‘‘Cross-validation strategies for data with temporal, spatial,
+@@ -761,3 +846,3 @@
+ 929, 2017, doi: 10.1111/ecog.02881.
+-[13] N. Karasiak, J.-F. Dejoux, C. Monteil, and D. Sheeren, ‘‘Spatial depen-
++[21] N. Karasiak, J.-F. Dejoux, C. Monteil, and D. Sheeren, ‘‘Spatial depen-
+ dence between training and test sets: Another pitfall of classification ac-
+@@ -765,3 +850,3 @@
+ pp. 2715–2740, 2022, doi: 10.1007/s10994-021-05972-1.
+-[14] J. Pohjankukka, T. Pahikkala, P. Nevalainen, and J. Heikkonen, ‘‘Estimat-
++[22] J. Pohjankukka, T. Pahikkala, P. Nevalainen, and J. Heikkonen, ‘‘Estimat-
+ ing the prediction performance of spatial models via spatial k-fold cross
+@@ -769,6 +854,6 @@
+ 2017, doi: 10.1080/13658816.2017.1346255.
+-[15] H. Meyer and E. Pebesma, ‘‘Predicting into unknown space? Estimating
++[23] H. Meyer and E. Pebesma, ‘‘Predicting into unknown space? Estimating
+ the area of applicability of spatial prediction models,’’ Methods Ecol. Evol.,
+ vol. 12, no. 9, pp. 1620–1633, 2021, doi: 10.1111/2041-210X.13650.
+-[16] R. Valavi, J. Elith, J. J. Lahoz-Monfort, and G. Guillera-Arroita, ‘‘blockCV:
++[24] R. Valavi, J. Elith, J. J. Lahoz-Monfort, and G. Guillera-Arroita, ‘‘blockCV:
+ An R package for generating spatially or environmentally separated folds
+@@ -776,16 +861,27 @@
+ Evol., vol. 10, no. 2, pp. 225–232, 2019, doi: 10.1111/2041-210X.13107.
+-[17] 3GPP, ‘‘Evolved Universal Terrestrial Radio Access (E-UTRA); Physical
++[25] A. M. J.-C. Wadoux, G. B. M. Heuvelink, S. de Bruin, and D. J.
++Brus, ‘‘Spatial cross-validation is not the right way to evaluate
++map accuracy,’’ Ecological Modelling, vol. 457, p. 109692, 2021,
++doi: 10.1016/j.ecolmodel.2021.109692.
++[26] P. Ploton, F. Mortier, M. Réjou-Méchain, N. Barbier, N. Picard, et al.,
++‘‘Spatial validation reveals poor predictive performance of large-scale
++ecological mapping models,’’ Nature Communications, vol. 11, p. 4540,
++2020, doi: 10.1038/s41467-020-18321-y.
++[27] 3GPP, ‘‘Evolved Universal Terrestrial Radio Access (E-UTRA); Physical
+ layer; Measurements,’’ 3GPP TS 36.214, V17.2.0, 2022.
+-[18] L. Breiman, ‘‘Random forests,’’ Machine Learning, vol. 45, no. 1, pp. 5–32,
++[28] L. Breiman, ‘‘Random forests,’’ Machine Learning, vol. 45, no. 1, pp. 5–32,
+ 2001, doi: 10.1023/A:1010933404324.
+-[19] L. Breiman, ‘‘Bagging predictors,’’ Machine Learning, vol. 24, no. 2,
++[29] L. Breiman, ‘‘Bagging predictors,’’ Machine Learning, vol. 24, no. 2,
+ pp. 123–140, 1996, doi: 10.1007/BF00058655.
+-[20] A. Liaw and M. Wiener, ‘‘Classification and regression by randomForest,’’
++[30] A. Liaw and M. Wiener, ‘‘Classification and regression by randomForest,’’
+ R News, vol. 2, no. 3, pp. 18–22, 2002.
+-[21] T. Chen and C. Guestrin, ‘‘XGBoost: A scalable tree boosting system,’’ in
++[31] T. Chen and C. Guestrin, ‘‘XGBoost: A scalable tree boosting system,’’ in
+ Proc. 22nd ACM SIGKDD Int. Conf. Knowl. Discovery Data Mining, 2016,
+ pp. 785–794, doi: 10.1145/2939672.2939785.
+-[22] G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y.
++[32] G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y.
+ Liu, ‘‘LightGBM: A highly efficient gradient boosting decision tree,’’ in
+ Adv. Neural Inf. Process. Syst., vol. 30, 2017, pp. 3146–3154.
++[33] IEC, ‘‘Determination of RF field strength, power density and SAR in the
++vicinity of base stations for the purpose of evaluating human exposure,’’
++IEC 62232:2022, 2022.
+ JUAN PAN is currently a Professor-level Senior Engineer and the Deputy Di-
+@@ -798,3 +894,3 @@
+ learning for radio-frequency exposure assessment.
++8
+ VOLUME XX, 2026
+-7

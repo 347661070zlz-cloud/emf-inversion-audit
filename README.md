@@ -19,7 +19,7 @@ device calibration.
 |---|---|
 | The evaluation protocol moves the error estimate by 0.39 dB — more than twice the spread among six regressors | `protocol_experiment.py` |
 | Adding the reported EARFCN removes a band-dependent bias of up to 0.5 dB and lowers MAE by 15–31 % depending on how the label is defined | `band_model_experiment.py`, `label_confound_experiment.py` |
-| Input-space recalibration of the same handset is absorbed by the tree ensemble; only cross-device offsets matter, and 100 labelled samples recover 65–75 % of the loss | `device_shift_experiment.py` |
+| Input-space recalibration of the same handset is absorbed by the tree ensemble; only cross-device offsets matter, and 100 labelled samples recover 65–75 % of the loss (recovery saturates there) | `device_shift_experiment.py`, `calibration_size_sweep.py` |
 | Pooled R² hides the effect that MAE reveals, and per-fold R² is meaningless when a fold contains a single band | `protocol_experiment.py` |
 
 ## Data
@@ -70,7 +70,8 @@ previous results.
 | Table IV — within-band R² | `python band_model_experiment.py` | same file, columns `b*_R2` |
 | Table V — model comparison (RH) | `python compare_models.py` | `outputs/compare/model_summary.csv` |
 | Table V — model comparison (ST-PB-CV) | `python compare_models_stpb.py` | `outputs/compare/model_summary_stpb.csv` |
-| Table VI — inter-device offset | `python device_shift_experiment.py` | `outputs/protocol/device_shift.csv` |
+| Table VII — inter-device offset | `python device_shift_experiment.py` | `outputs/protocol/device_shift.csv` |
+| Table VIII — calibration sample cost | `python calibration_size_sweep.py` | `outputs/protocol/calibration_size.csv` |
 | Fig. 1 — study area and folds | `python make_figures.py` | `outputs/figures/fig3_study_area.pdf` |
 | Fig. 2 — test MAE by protocol | `python make_figures.py` | `outputs/figures/fig1_protocols.pdf` |
 | Fig. 3 — predicted vs. measured | `python make_figures_diagnostics.py` | `outputs/figures/fig_pred_scatter.pdf` |
@@ -103,6 +104,7 @@ python bootstrap_ci.py
 python band_model_experiment.py --seeds 8 --jobs 8
 python label_confound_experiment.py
 python device_shift_experiment.py
+python calibration_size_sweep.py
 python deep_calibration_experiment.py
 python compare_models.py
 python compare_models_stpb.py
