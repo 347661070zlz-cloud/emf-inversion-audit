@@ -57,18 +57,21 @@ def run_fold(df, tr_idx, te_idx, fold):
 
     for d in DELTAS:
         p = m.predict(shift_features(Xte, d))
-        mae_raw = float(np.abs(p - y).mean())
         resid = p - y                      # 需要校正的残差
         for n in SIZES:
             if n > len(y):
                 continue
-            maes = []
+            raws, cals = [], []
             for _ in range(N_REPEAT):
                 idx = rng.choice(len(y), size=n, replace=False)
+                # 标定点从评估中剔除，否则标定就在被评估的数据上拟合
+                keep = np.ones(len(y), dtype=bool)
+                keep[idx] = False
                 b = float(resid[idx].mean())
-                maes.append(float(np.abs(resid - b).mean()))
+                raws.append(float(np.abs(resid[keep]).mean()))
+                cals.append(float(np.abs(resid[keep] - b).mean()))
             rows.append({"fold": fold, "delta": d, "n_cal": n,
-                         "MAE_raw": mae_raw, "MAE_cal": float(np.mean(maes))})
+                         "MAE_raw": float(np.mean(raws)), "MAE_cal": float(np.mean(cals))})
     return rows
 
 

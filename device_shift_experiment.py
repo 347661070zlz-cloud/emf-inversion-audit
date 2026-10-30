@@ -57,13 +57,18 @@ def run_fold(df, tr_idx, te_idx, fold):
     rng = np.random.default_rng(fold)
     cal_idx = rng.choice(len(te), size=min(CAL_N, len(te)), replace=False)
 
+    # 标定点取自测试折，但必须从评估中剔除：否则标定就是在"被评估的数据"上拟合，
+    # 正是第 V-C 节批评的泄漏式校准。剔除后评估集为 9262-100 条。
+    keep = np.ones(len(y), dtype=bool)
+    keep[cal_idx] = False
+
     for d in DELTAS:
         p = m.predict(shift_features(Xte, d))
         # 用 cal_idx 上的标签估计输出偏置并校正（众包里"少量真值"的典型做法）
         b = float(np.mean(p[cal_idx] - y[cal_idx]))
         rows.append({"fold": fold, "delta": d,
-                     "MAE_raw": float(np.abs(p - y).mean()),
-                     "MAE_cal": float(np.abs((p - b) - y).mean()),
+                     "MAE_raw": float(np.abs(p[keep] - y[keep]).mean()),
+                     "MAE_cal": float(np.abs((p - b)[keep] - y[keep]).mean()),
                      "bias_est": b})
     return rows
 

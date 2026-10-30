@@ -17,7 +17,10 @@
                   训练与测试都变换 → 若树模型能吸收，MAE 应与 A 相同
   C 泄漏式校准  ：用**测试折自己**的标签估计每个频段的偏置并扣除（= 你流程里
                   "用全部配对数据拟合响应"的效果，属于作弊上界）
-  D 公平校准    ：用**训练集内**抽出的 100 条/频段配对样本估计偏置并扣除
+  D 旧设备标签  ：用**训练集内**抽出的 100 条/频段配对样本估计偏置并扣除
+                  （标签充足，但描述的是旧设备）
+  E 新设备剔除  ：从**测试折**抽 100 条估计偏置，并把它们从评估中剔除
+                  （= 论文第 V-A 节的做法；C 与 E 之差才是真正的泄漏）
 
 用法：python deep_calibration_experiment.py
 """
@@ -44,7 +47,8 @@ POS_COLS = ["mean_cell", "max_cell", "min_cell", "median_cell", "quantile1_cell"
             "quantile2_cell", "mode_cell"] + [f"t{i}" for i in range(1, 8)]
 DISP_COLS = ["range_cell", "std", "iqr_cell", "mean_mad", "median_mad"]
 GAIN, OFFSET = 1.10, -3.0      # 模拟"用响应曲线校正后"的等效变换
-CAL_PER_BAND = 100
+CAL_PER_BAND = 100      # D 臂：训练折内每频段的配对样本数（旧设备标签）
+CAL_TOTAL = 400         # E 臂：测试折内抽出的标定样本总数（= 4×CAL_PER_BAND，与 D 臂等量）
 
 
 def transform(X: pd.DataFrame, gain=GAIN, offset=OFFSET) -> pd.DataFrame:
@@ -75,6 +79,19 @@ def run_fold(df, tr_idx, te_idx, fold):
 
     y = te["label"].to_numpy()
     band = te["earfcn"].to_numpy()
+    bands = np.unique(band)
+
+    # 每频段抽 CAL_TOTAL/4 条测试折样本作标定，并从评估中剔除
+    rng = np.random.default_rng(7000 + fold)
+    cal_idx = []
+    for b in bands:
+        sub = np.where(band == b)[0]
+        k = min(max(1, CAL_TOTAL // len(bands)), len(sub))
+        cal_idx += list(rng.choice(sub, size=k, replace=False))
+    cal_idx = np.array(cal_idx)
+    keep = np.ones(len(y), dtype=bool)
+    keep[cal_idx] = False
+    yk = y[keep]
 
     # A：基线
     m = model.make_model()
@@ -86,35 +103,42 @@ def run_fold(df, tr_idx, te_idx, fold):
     m2.fit(transform(tr[C.FEATURE_COLS]), tr["label"])
     pB = m2.predict(transform(te[C.FEATURE_COLS]))
 
-    # C：泄漏式——用测试折自己的标签估偏置
+    # C：泄漏式——用被评估点自身的标签估偏置（作弊上界）
     pC = apply_bias(pA, band, band_bias(y, pA, band))
 
-    # D：公平——用训练集内抽的配对样本估偏置
-    rng = np.random.default_rng(fold)
+    # D：旧设备标签——训练折内每频段的配对样本
+    rng_d = np.random.default_rng(fold)
     cal_parts = []
-    for b in np.unique(band):
+    for b in bands:
         sub = tr[tr["earfcn"] == b]
         if len(sub) == 0:
             continue
-        idx = rng.choice(len(sub), size=min(CAL_PER_BAND, len(sub)), replace=False)
+        idx = rng_d.choice(len(sub), size=min(CAL_PER_BAND, len(sub)), replace=False)
         cal_parts.append(sub.iloc[idx])
     cal = pd.concat(cal_parts)
     p_cal = m.predict(cal[C.FEATURE_COLS])
-    biases = band_bias(cal["label"].to_numpy(), p_cal, cal["earfcn"].to_numpy())
-    pD = apply_bias(pA, band, biases)
+    biases_d = band_bias(cal["label"].to_numpy(), p_cal, cal["earfcn"].to_numpy())
+    pD = apply_bias(pA, band, biases_d)
 
+    # E：新设备标签——用已剔除的 cal_idx 估偏置
+    biases_e = band_bias(y[cal_idx], pA[cal_idx], band[cal_idx])
+    pE = apply_bias(pA, band, biases_e)
+
+    # 五个方案都在同一个评估集（keep）上打分，n 相同，指标可比
     def mets(p):
-        return {"MAE": mean_absolute_error(y, p),
-                "RMSE": float(np.sqrt(mean_squared_error(y, p))),
-                "R2": r2_score(y, p)}
+        pk = p[keep]
+        return {"MAE": mean_absolute_error(yk, pk),
+                "RMSE": float(np.sqrt(mean_squared_error(yk, pk))),
+                "R2": r2_score(yk, pk)}
 
-    row = {"fold": fold, "n_train": len(tr), "n_test": len(te),
-           "te_mean": float(y.mean()), "te_std": float(y.std())}
-    for tag, p in [("A_基线", pA), ("B_一致性校准", pB),
-                   ("C_泄漏式校准", pC), ("D_公平校准", pD)]:
-        for k, v in mets(p).items():
-            row[f"{tag}_{k}"] = v
-    for b, v in biases.items():
+    row = {"fold": fold, "n_train": len(tr), "n_test": int(keep.sum()),
+           "n_cal": len(cal_idx),
+           "te_mean": float(yk.mean()), "te_std": float(yk.std())}
+    for tag, p in [("A_基线", pA), ("B_一致性校准", pB), ("C_泄漏式校准", pC),
+                   ("D_旧设备标签", pD), ("E_新设备剔除", pE)]:
+        for k2, v in mets(p).items():
+            row[f"{tag}_{k2}"] = v
+    for b, v in biases_d.items():
         row[f"bias_b{b}"] = v
     return row
 
@@ -127,7 +151,7 @@ def main():
     per = pd.DataFrame(rows)
     per.to_csv(OUT / "calibration_per_fold.csv", index=False)
 
-    tags = ["A_基线", "B_一致性校准", "C_泄漏式校准", "D_公平校准"]
+    tags = ["A_基线", "B_一致性校准", "C_泄漏式校准", "D_旧设备标签", "E_新设备剔除"]
     agg = []
     for t in tags:
         n = per["n_test"].sum()

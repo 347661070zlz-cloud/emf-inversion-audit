@@ -19,7 +19,7 @@ device calibration.
 |---|---|
 | The evaluation protocol moves the error estimate by 0.39 dB — more than twice the spread among six regressors | `protocol_experiment.py` |
 | Adding the reported EARFCN removes a band-dependent bias of up to 0.5 dB and lowers MAE by 15–31 % depending on how the label is defined | `band_model_experiment.py`, `label_confound_experiment.py` |
-| Input-space recalibration of the same handset is absorbed by the tree ensemble; only cross-device offsets matter, and 100 labelled samples recover 65–75 % of the loss (recovery saturates there) | `device_shift_experiment.py`, `calibration_size_sweep.py` |
+| Input-space recalibration of the same handset is absorbed by the tree ensemble; only cross-device offsets matter, and 100 labelled samples recover 62–75 % of the loss (recovery saturates there) | `device_shift_experiment.py`, `calibration_size_sweep.py` |
 | Pooled R² hides the effect that MAE reveals, and per-fold R² is meaningless when a fold contains a single band | `protocol_experiment.py` |
 
 ## Data
